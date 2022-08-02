@@ -1,0 +1,44 @@
+ID<-seq(1:15)
+Explanatory<-c(3.4, 1.8, 4.6, 2.3, 3.1, 5.5, 0.7, 3.0, 2.6, 4.3, 2.1, 1.1, 6.1, 4.8, 3.8)
+Response<-c(21, 13, 26, 18, 23, 31,  9, 17, 15, 26, 19, 12, 38, 31, 21)
+DF<-data.frame(ID,Explanatory,Response)
+
+# scatterplot
+library(ggplot2)
+(g<-ggplot(DF,aes(x=Explanatory,y=Response))+geom_point())
+(g1<-g+ labs(x="Explanatory variable",y="Response variable")+
+    coord_cartesian(xlim=c(0.5,6.5),ylim=c(5,40))+ #scale axes
+    scale_x_continuous(breaks=seq(0.5,6.5,0.5))+
+    scale_y_continuous(breaks=seq(5,40,5)))
+(g2<-g1+theme(text = element_text(size=15))+ # increasing font size
+            geom_smooth(method=lm,se=T)) # including regression line
+
+# regression line
+fit<-lm(Response~Explanatory, DF) #returns regression coefficients
+summary(fit) #returns more info
+
+
+################################
+# sample output
+Measures<-c("Pearson correlation coefficient","R^2","Regression coefficients","Intercept",
+            "Slope", "95% CI (lower)","95% CI (upper)")
+
+(res1<-corr.test(DF[,-1]))  # correlation output
+(r<-round(res1$r[2],3)) # isolate correlation coefficient
+(p<-ifelse(res1$p[2]<0.0005,"<0.0005",round(res1$p[2],4)))
+
+(r2<-summary(fit)$r.squared)
+(r2_per<-paste0(round(r2*100,1),"%"))
+(CI_Lower<-round(confint(fit, level=0.95)[2],2))
+(CI_Upper<-round(confint(fit, level=0.95)[4],2))
+
+(Intercept<-round(coefficients(fit)[1],2))
+(Slope<-round(coefficients(fit)[2],2))
+Statistics<-c(r,r2_per,"",Intercept,Slope,CI_Lower,CI_Upper)
+p_value<-c(p,"","","",p,"","")
+
+(df<-data.frame(Measures,Statistics,p_value))
+
+library(xlsx)
+write.xlsx(df,"Table_SLR.xlsx")
+

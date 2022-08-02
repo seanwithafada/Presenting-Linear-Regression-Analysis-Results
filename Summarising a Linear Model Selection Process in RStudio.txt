@@ -1,0 +1,77 @@
+#################################  creating dataframe
+ID<-seq(1:10)
+Response<-c(37.7, 24.2, 32.1,  3.6, 17.6, 45.9, 29.6,  8.1, 20.1, 13.0)
+Predictor01<-c(1739, 1221, 1846,  120, 1096, 2290, 1687,  241,  649, 1427)
+Predictor02<-c(9.3,  5.9,  8.8,  3.8, 10.3, 11.6,  9.0,  6.0,  7.8, 10.9)
+Predictor03<-c(85.4, 60.7, 68.1, 20.2, 33.8, 95.1, 69.3, 16.3, 34.9, 15.1)
+Predictor04<-c(3.5, 5.0, 4.4, 4.0, 3.5, 4.1, 4.1, 5.9, 5.5, 4.1)
+Predictor05<-c(9,  5,  7,  5,  7, 13, 15, 11, 16, 10)
+DF<-data.frame(ID,Response,Predictor01,Predictor02,Predictor03,Predictor04,Predictor05)  
+View(DF)
+
+#################################  grouped scatterplot
+library(tidyr)
+library(ggplot2)
+(gs<-DF[,-1] %>% gather(-`Response`,key=var,value="value") %>% 
+    ggplot(aes(x=value,y=`Response`))+geom_point()+
+    facet_wrap(~ var, scales="free")+theme_bw())
+windows(20,10)
+gs+labs(x="Predictor variables",y="Response variable")+
+  geom_smooth(method="lm")+ # includes regression line
+  theme(text = element_text(size=15))+
+    coord_cartesian(ylim=c(0,50))+scale_y_continuous(breaks=seq(0,50,10))
+
+#################################  Multiple linear regression
+# Full model
+fit1<-lm(Response~., data = DF[,-1])
+summary(fit1)
+#################################  Check for multi-collinearity
+library(faraway)
+(v1<-vif(fit1))
+
+#################################  remove Predictor01
+fit2<-lm(Response~., data = DF[,c(-1,-3)])
+summary(fit2)
+(v2<-vif(fit2))
+
+################################# standardised regression coefficients to compare coefficients
+library(QuantPsyc)
+src1<-lm.beta(fit1) # model 01
+(src2<-lm.beta(fit2)) # model 02
+
+### summarising steps to selecting model
+Names<-c("Intercept","Predictor 01","Predictor 02","Predictor 03",
+         "Predictor 04","Predictor 05")
+Model<-c(1,rep("",5),2,rep("",4))
+
+# adjusted r squared output
+r2_per1<-paste0(round(summary(fit1)$adj.r.squared*100,1),"%")
+r2_per2<-paste0(round(summary(fit2)$adj.r.squared*100,1),"%")
+
+rsquared<-c(r2_per1,rep("",5),r2_per2,rep("",4))
+
+Variables<-c(Names,Names[-2])
+
+# regression coefficient
+Coeff<-c(summary(fit1)$coefficients[,1],
+         summary(fit2)$coefficients[,1])
+Coeff<-round(Coeff,2)
+
+# standardised regression coefficient
+Standardised<-c("",round(src1,2),"",round(src2,2))
+
+# p-values
+pvalues<-c("",ifelse(summary(fit1)$coefficients[-1,4]<0.0005,"<0.0005",
+                     round(summary(fit1)$coefficients[-1,4],4)),
+           "",ifelse(summary(fit2)$coefficients[-1,4]<0.0005,"<0.0005",
+                     round(summary(fit2)$coefficients[-1,4],4)))
+
+# VIF
+VIF<-c("",round(v1,1),"",round(v2,1))
+
+(Frame<-data.frame(Model,rsquared,Variables, Coeff,Standardised,pvalues,VIF))
+
+################################# write to Excel
+library(xlsx)
+write.xlsx(Frame,"Table_LMS.xlsx")
+
